@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QUEST OF 18: SANVI EDITION</title>
+
+<style>
+/* RETRO CORE */
+:root {
+  --neon: #00ff9f;
+  --dark-green: #00331a;
+}
+
+body {
+  margin: 0;
+  background: black;
+  color: var(--neon);
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-transform: uppercase;
+}
+
+/* CRT SCANLINE EFFECT */
+body::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 100;
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Screens */
+.screen {
+  display: none;
+  height: 85vh;
+  width: 85vw;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  border: 3px solid var(--neon);
+  padding: 30px;
+  box-shadow: inset 0 0 30px var(--dark-green), 0 0 15px var(--dark-green);
+  background: rgba(0, 10, 5, 0.95);
+  position: relative;
+}
+.active { display: flex; animation: flicker 0.15s infinite; }
+
+@keyframes flicker {
+  0% { opacity: 0.99; }
+  50% { opacity: 0.96; }
+  100% { opacity: 1; }
+}
+
+/* Buttons & Inputs */
+button {
+  margin: 15px;
+  padding: 15px 30px;
+  background: transparent;
+  border: 2px solid var(--neon);
+  color: var(--neon);
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.1s;
+}
+button:hover {
+  background: var(--neon);
+  color: black;
+  box-shadow: 0 0 20px var(--neon);
+}
+
+input {
+  background: transparent;
+  border: 2px solid var(--neon);
+  color: var(--neon);
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  font-size: 1.3rem;
+  outline: none;
+  margin-bottom: 20px;
+}
+
+/* Character Sprite */
+.char, #charImg {
+  width: 220px; 
+  height: 220px;
+  image-rendering: pixelated; 
+  object-fit: contain;
+  margin-bottom: 30px;
+}
+
+.char {
+  position: relative; 
+  animation: bounce 0.6s infinite alternate;
+}
+
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+
+/* THE FIX: QUEST TEXT SPACING */
+#storyText {
+  min-height: 120px; 
+  font-size: 1.2rem; 
+  line-height: 1.8;
+  padding: 20px 40px;
+  margin-bottom: 20px; 
+  border-top: 1px solid var(--dark-green);
+  /* The Secret Sauce */
+  white-space: pre-wrap; 
+  word-spacing: 8px;
+  letter-spacing: 1px;
+}
+
+/* Environment */
+.environment {
+  position: absolute;
+  bottom: 0; width: 100%; height: 100px;
+  overflow: hidden; z-index: -1;
+  opacity: 0.5;
+}
+.grass { height: 40px; background: repeating-linear-gradient(90deg, #004422 0 15px, var(--neon) 15px 16px); position: absolute; bottom: 0; width: 100%; }
+.river { height: 30px; background: repeating-linear-gradient(90deg, #001133 0 30px, #00ccff 30px 32px); position: absolute; bottom: 40px; width: 100%; animation: scroll 1.5s linear infinite; }
+@keyframes scroll { from { background-position: 0 0; } to { background-position: 62px 0; } }
+
+/* Letter System */
+#letterBox {
+  width: 90%;
+  max-height: 65vh;
+  border: 1px solid var(--neon);
+  padding: 30px;
+  overflow-y: auto;
+  text-align: left;
+  line-height: 1.8;
+  background: black;
+  font-size: 1.1rem;
+  white-space: pre-wrap;
+  word-spacing: 4px;
+}
+</style>
+</head>
+
+<body>
+
+<audio id="bgMusic" src="music.mp3" loop></audio>
+
+<div class="screen active" id="screen1">
+  <div id="bootText" style="margin-bottom: 30px; font-size: 1.2rem; white-space: pre-wrap;"></div>
+  <div id="bootChoices" style="display:none;">
+    <button onclick="startAudio(); goTo2()">[ PROCEED ]</button>
+    <button id="noBtn">[ ABORT ]</button>
+  </div>
+</div>
+
+<div class="screen" id="screen2">
+  <h2>IDENTIFY SUBJECT</h2>
+  <input id="nameInput" maxlength="15" placeholder="TYPE NAME...">
+  <button onclick="confirmName()">SCAN IDENTITY</button>
+  <div id="popup" style="display:none; margin-top: 20px; border: 1px dashed var(--neon); padding: 15px;">
+    <p id="confirmText"></p>
+    <button onclick="acceptName()">YES</button>
+    <button onclick="retryName()">NO</button>
+  </div>
+</div>
+
+<div class="screen" id="screen3">
+  <h2>CHOOSE YOUR FORM</h2>
+  <img id="charImg" src="char1.png">
+  <div style="margin-top: 10px;">
+    <button onclick="prevChar()"> < PREV </button>
+    <button onclick="selectChar()">SELECT</button>
+    <button onclick="nextChar()"> NEXT > </button>
+  </div>
+</div>
+
+<div class="screen" id="screen4">
+  <img id="charDisplay" class="char">
+  <div id="storyText"></div>
+  <div id="choicesBox"></div>
+  <div class="environment">
+    <div class="river"></div>
+    <div class="grass"></div>
+  </div>
+</div>
+
+<div class="screen" id="screenLock">
+  <h2>ENCRYPTED VAULT</h2>
+  <p style="margin-bottom: 20px;">SECURITY CLEARANCE REQUIRED FOR LEVEL 18.</p>
+  <input id="codeInput" type="text" placeholder="****">
+  <button onclick="checkCode()">DECRYPT</button>
+  <p style="font-size: 0.9rem; color: #ff3333; margin-top: 30px; letter-spacing: 2px;">HINT: YOU + ME; BIRTHDAY</p>
+</div>
+
+<div class="screen" id="screen5">
+  <div style="font-size: 100px; margin-bottom: 20px;">🏰</div>
+  <h2>CITADEL OF ADULTHOOD</h2>
+  <button onclick="enterTower()">ASCEND TO THE PEAK ➡</button>
+</div>
+
+<div class="screen" id="screen6">
+  <h2>DATA CORE REACHED</h2>
+  <p style="margin-bottom: 30px;">THE ANCIENT SCROLL OF 18 IS READY.</p>
+  <button onclick="openScroll()">READ FINAL LOG</button>
+</div>
+
+<div class="screen" id="screenLetter">
+  <div id="letterBox">
+    <div id="letterText"></div>
+    <button id="nextBtn" onclick="nextPage()" style="margin-top: 25px; width: 100%;">ACCESS NEXT DATA BANK...</button>
+  </div>
+</div>
+
+<script>
+function startAudio() { document.getElementById("bgMusic").play(); }
+
+let bootMsg = "SYSTEM BOOTING...\nLOADING ASSETS...\nPLAYER: PLAYER143\nOBJECTIVE: SURVIVE 18 YEARS\nSTATUS: SUCCESS\n\nCONTINUE TO ADULTHOOD?";
+let b = 0;
+function typeBoot() {
+  if(b < bootMsg.length) {
+    document.getElementById("bootText").innerHTML += bootMsg[b];
+    b++;
+    setTimeout(typeBoot, 25);
+  } else {
+    document.getElementById("bootChoices").style.display = "block";
+  }
+}
+typeBoot();
+
+noBtn.onmouseover=()=>{
+  noBtn.style.position="absolute";
+  noBtn.style.left=Math.random()*70+"vw";
+  noBtn.style.top=Math.random()*70+"vh";
+}
+
+function change(f,t){
+  document.getElementById(f).classList.remove("active");
+  document.getElementById(t).classList.add("active");
+}
+
+function goTo2(){ change("screen1","screen2"); }
+
+let playerName="";
+function confirmName(){
+  playerName=nameInput.value;
+  if(!playerName) return alert("ENTER NAME");
+  confirmText.innerText=`SUBJECT: ${playerName}. CONFIRM?`;
+  popup.style.display="block";
+}
+function acceptName(){ change("screen2","screen3"); }
+function retryName(){ popup.style.display="none"; }
+
+let chars=["char1.png","char2.png","char3.png","char4.png"];
+let idx=0;
+function nextChar(){ idx=(idx+1)%4; charImg.src=chars[idx]; }
+function prevChar(){ idx=(idx-1+4)%4; charImg.src=chars[idx]; }
+function selectChar(){
+  charDisplay.src=chars[idx];
+  change("screen3","screen4");
+  renderStory();
+}
+
+let step = 0;
+const story = [
+  ["Year 1: You wake up in a world of pixels. A small sign says: 'Welcome Sanvi, it begins.'", "Walk Forward", "Cry for Milk", 0],
+  ["Year 5: You find a box of crayons. The colors look like magic.", "Draw a Castle", "Eat a Crayon", 0],
+  ["Year 11: School is getting weird. A math problem tries to bite you.", "Solve for X", "Run Away", 0],
+  ["Year 16: You enter the '11th Grade' biome. Everything is suddenly very stressful.", "Find Friends", "Study 24/7", 0],
+  ["You meet Aahana! A rare ally appears in the FIITJEE dungeon.", "Team Up", "Go Solo", 0],
+  ["The School Bus is flooded! It's basically a boat now.", "Keep Rowing", "Panic", 0],
+  ["Year 17: The BT phase strikes. Emotions are glitching everywhere.", "Talk it out", "Internalize", 0],
+  ["The Final Stretch: You see the 'Citadel of 18' in the distance.", "Sprint", "Walk Coolly", 0],
+  ["A gatekeeper asks: 'Are you ready to fund the parties now?'", "Yes, unfortunately", "Maybe next year", 0]
+];
+
+function renderStory() {
+  let s = story[step];
+  let textCont = document.getElementById("storyText");
+  let choiceBox = document.getElementById("choicesBox");
+  textCont.innerText = "";
+  choiceBox.innerHTML = "";
+  
+  let i = 0;
+  function typeStory() {
+    if(i < s[0].length) {
+      textCont.innerText += s[0][i++];
+      setTimeout(typeStory, 30);
+    } else {
+      renderChoices(s);
+    }
+  }
+  typeStory();
+}
+
+function renderChoices(s) {
+  const box = document.getElementById("choicesBox");
+  for(let i=1; i<=2; i++) {
+    let b = document.createElement("button");
+    b.innerText = `[ ${s[i]} ]`;
+    b.onclick = () => {
+      if(i-1 === s[3]) {
+        step++;
+        if(step >= story.length) change("screen4","screenLock");
+        else renderStory();
+      } else {
+        alert("TIMELINE RESET: TRY AGAIN!");
+        step = 0; renderStory();
+      }
+    };
+    box.appendChild(b);
+  }
+}
+
+function checkCode(){
+  if(codeInput.value === "1623") change("screenLock","screen5");
+  else alert("CODE ERROR: HINT IGNORED?");
+}
+function enterTower(){ change("screen5","screen6"); }
+
+// --- THE FINAL EXTENDED LETTER ---
+let pages = [
+  `MESSAGE DATA LOG #1: THE BIRTHDAY\n--------------------------------\n\nDEAR SANVI,\n\nFIRST OF ALL, HAPPY BIRTHDAY!!!!!!!!!! 🎂✨🎈\n\nAND SECOND OF ALL... WTF?!!!!!!! YOU ARE 18? LIKE 18? LIKE THE ACTUAL LEGAL ADULT KIND? 🤯 NAH, WHAT IS EVEN HAPPENING?! I JUST TURNED 17 A FEW MONTHS BACK, SO TALK ABOUT YOU BEING OLD, BUT FINE, SINCE TODAY IS YOUR BIG DAY, I’LL HOLD BACK. JUST KNOW THAT AS SOON AS THE CLOCK HITS 12 TONIGHT, THE "OLDIE" JOKES ARE COMING BACK IN FULL FORCE. 👵💨`,
+  `MESSAGE DATA LOG #2: THE REWIND\n--------------------------------\n\nLOOKING BACK, WE MET IN 11TH GRADE, WHICH WAS ONLY A YEAR AGO, BUT IT HONESTLY FEELS LIKE FOREVER. THOUGH LET’S BE REAL, HUMNE 11TH MAIN BAAT HI KAHAN KI THI? BUT MAN, 11TH WAS A LOT.\n\nI NEVER THOUGHT I’D EXPERIENCE "BOATING" VIA A SCHOOL BUS AND LOWKEY DROWNING... THOUGH THE ONLY THING THAT ACTUALLY DROWNED WAS FIITJEE. 💀 HATE THAT PLACE TBH, BUT I’M ALSO SO GLAD IT’S WHERE I MET ALL OF YOU.`,
+  `MESSAGE DATA LOG #3: THE VIBE SHIFT\n----------------------------------\n\nTHEN CAME THE BT PHASE. THAT’S WHEN WE ACTUALLY STARTED TALKING TALKING. I DON’T EVEN REMEMBER THE EXACT MOMENT IT CLICKED BECAUSE IT JUST FELT SO NATURAL, YOU KNOW? NO FORCED SMALL TALK, JUST PURE VIBES.\n\nNEXT THING I KNOW, I’M AT YOUR HOUSE FOR GANESH CHATURTHI LIKE DAYUMMM. TALK ABOUT A TRANSITION! 📈`,
+  `MESSAGE DATA LOG #4: 12TH GRADE RECAP\n------------------------------------\n\nFROM THE BRIO CHAOS TO THE BUS PAGALPANTI, THE RANDOM SONGS, AND THE ENDLESS GOSSIPING... THERE ARE WAY TOO MANY HAPPY MOMENTS TO LIST. I CAN HONESTLY SAY THAT EVERY SINGLE MEMORABLE MOMENT FROM 12TH GRADE HAS YOU GUYS IN IT.\n\nEVEN THE ONES WE DIDN’T WANT, LIKE SOMESH SIR’S CLASS THAT DAY... I CAN’T FORGET THAT EVEN IF I TRIED! 😂 WHENEVER I LOOK BACK, I JUST SEE MYSELF LAUGHING. THINKING ABOUT IT LITERALLY MAKES ME GIGGLE.`,
+  `MESSAGE DATA LOG #5: THE FUTURE\n-------------------------------\n\nI KNOW WE’RE AT THAT "CRUCIAL STAGE" EVERYONE KEEPS YAPPING ABOUT. WE’RE ALL STRESSED AND TENSED, AND I KNOW IT’S HARD. BUT LISTEN, I KNOW EVERYTHING IS GOING TO GO WELL. I KNOW YOU’RE GOING TO KILL IT.\n\nIT’S GOING TO GET TOUGHER, BUT IMAGINE HOW MUCH FUN THE NEXT PHASE WILL BE ONCE WE GET THROUGH THIS. NEXT YEAR, THE YEAR AFTER, AND FOR YEARS TO COME, WE’LL BE MEETING UP, GOING ON TRIPS, AND JUST LIVING. AND OBVIOUSLY, AS SOON AS EXAMS ARE OVER, WE ARE GOING TO PARTY SHARTY HEHEHEHEHE. 🥂💃`,
+  `MESSAGE DATA LOG #6: ADULTHOOD 🔞\n-------------------------------\n\nSO BABES, BELIEVE IN YOURSELF AND TRUST THE PROCESS BECAUSE YOU ARE GOING TO DO GREAT. WE ALL ARE. OKAY, ENOUGH MOTIVATION, I’M GETTING SOFT. SMH. 😤\n\nONTO THE MAIN TOPIC: ADULTHOOD.\nHERE’S THE DEAL:\n1. YOU OWE US A DRIVE. 🚗\n2. YOU CAN NO LONGER MURDER ANYONE (JAIL). ⚖️\n3. YOU FUND THE PARTIES. 💸\n\nSIDE NOTE: IF YOU STILL NEED SOMEONE MURDERED, REMEMBER WE ARE MINORS, WE GOT YOU COVERED. 🔪😇`,
+  `MESSAGE DATA LOG #7: FINAL ACCESS\n---------------------------------\n\nSANVI, YOU ARE HONESTLY ONE OF THE MOST GENUINE, HILARIOUS, AND DEPENDABLE PEOPLE I KNOW. YOU HAVE THIS WAY OF MAKING EVERYTHING FEEL MORE FUN JUST BY BEING THERE. YOU'RE SMART, YOU'RE STUNNING, AND YOU'RE GOING TO ABSOLUTELY BOSS THIS NEW CHAPTER.\n\nTHIS GIFT IS ONLINE, BUT YOUR OFFLINE GIFT IS READY RIGHT AFTER JEE. STAY HYPED! 🎁🔥\n\nLOVE YOU LOADS! 🫶\nFROM YOUR FAV, YOUR BBG, AAHANA 🎀✨\n\nP.S.: YOU ARE ACTUALLY 18?! WTH!! 😭🥳👋`
+];
+
+let pIdx = 0;
+function openScroll(){ change("screen6","screenLetter"); showPage(); }
+
+function showPage(){
+  let text = pages[pIdx];
+  let cont = document.getElementById("letterText");
+  cont.innerHTML = "";
+  let i = 0;
+  function type(){
+    if(i < text.length){
+      cont.innerHTML += text[i++];
+      document.getElementById("letterBox").scrollTop = document.getElementById("letterBox").scrollHeight;
+      setTimeout(type, 12);
+    }
+  }
+  type();
+}
+
+function nextPage(){
+  pIdx++;
+  if(pIdx < pages.length) showPage();
+  else {
+    document.getElementById("nextBtn").style.display = "none";
+    document.getElementById("letterText").innerHTML += "\n\n[ SYSTEM OVERRIDE: QUEST COMPLETE. HAPPY BIRTHDAY SANVI! ]";
+  }
+}
+</script>
+
+</body>
+</html>
